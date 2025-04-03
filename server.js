@@ -664,22 +664,9 @@ async function startServer() {
   } else {
     console.error('Server failed to start due to database connection issues');
     process.exit(1);
+
   }
-  
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// Convert logo.jpeg to base64
-const logoPath = path.join(__dirname, 'logo.jpeg');
-const logoBuffer = fs.readFileSync(logoPath);
-const logoBase64 = `data:image/jpeg;base64,${logoBuffer.toString('base64')}`;
-console.log(logoBase64)
-
-// Convert signature.png to base64
-const signaturePath = path.join(__dirname, 'signature.png');
-const signatureBuffer = fs.readFileSync(signaturePath);
-const signatureBase64 = `data:image/png;base64,${signatureBuffer.toString('base64')}`;
-console.log(signatureBase64)
 }
-
+const adminPass= await bcrypt.hash("priya.admin@2025", 10);
+console.log(adminPass)
 startServer();
