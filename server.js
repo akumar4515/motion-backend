@@ -390,7 +390,7 @@ app.post('/api/employees/:id/send-offer-letter', verifyToken, async (req, res) =
           <div class="content">
             <p>Date: ${new Date().toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-')}</p>
             <p>Mr./Ms: ${employee.name}</p>
-            <p><strong>SUBJECT: OFFER LETTER FOR THE POST OF ${Role || 'Full Stack Developer'}</strong></p>
+            <p><strong>SUBJECT: OFFER LETTER FOR THE POST OF ${Role}</strong></p>
             <p>Dear ${employee.name.split(' ')[0]},</p>
             <p>This is regarding your application for the above position and the subsequent discussions thereof. We are pleased to inform you that you have been offered the position of <span class="highlight">${Role || 'Full Stack Developer'}</span> and will be posted to the Patna office. You shall join your duties on ${new Date(doj).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-')}.</p>
             <h2>1. Employment Type:</h2>
@@ -398,7 +398,7 @@ app.post('/api/employees/:id/send-offer-letter', verifyToken, async (req, res) =
             <h2>2. Working Hours:</h2>
             <p>Your standard working hours will be from 10:00 AM to 6:00 PM, 6 days a week. You may be required to work additional hours based on business needs. Any Change in the Schedule will be informed you in writing, prior to its effective Date.</p>
             <h2>3. Compensation:</h2>
-            <p>You will receive a gross monthly salary of ${salaryDisplay}, payable on a monthly basis.</p>
+            <p>You will be receive a gross monthly salary of ${salaryDisplay}, payable on a monthly basis.</p>
             <p>The offer letter is valid, subject to the authenticity and correctness of information, preliminary documents (if any) provided by you about your education, experience etc. The Offer (including the appointment) can be withdrawn/terminated at any point in time (without any legal liability on the Company), if the information provided by you is found to be untrue/incorrect.</p>
             <p>By accepting this offer, you agree, acknowledge, and authorize the Company to carry out necessary verifications, background checks on you from (which may be carried out in-house by the HR team or by a third party) your institution, college, previous employer/s, etc. In case of any negative feedback during the verification process, the Company reserves its right to withdraw/terminate this offer (including your appointment) without any legal liability on the Company. In any of the above event(s), you agree to pay back to the Company the amount(s) paid to you, without any objection.</p>
             <h2>4. Leave(s) & Holiday(s)</h2>
@@ -441,11 +441,16 @@ app.post('/api/employees/:id/send-offer-letter', verifyToken, async (req, res) =
       </html>
     `;
 
-    console.log('Launching Puppeteer...');
+    console.log('Launching Puppeteer with options:', {
+      headless: 'new',
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+      executablePath: '/usr/bin/chromium-browser', // Use system-installed Chromium
+    });
+
     const browser = await puppeteer.launch({
       headless: 'new',
       args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
-      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
+      executablePath: '/usr/bin/chromium-browser', // Explicitly use system Chromium
     });
     console.log('Puppeteer launched successfully');
 
@@ -456,7 +461,7 @@ app.post('/api/employees/:id/send-offer-letter', verifyToken, async (req, res) =
     await page.pdf({
       path: pdfPath,
       format: 'A4',
-      margin: { top: '40px', right: '40px', bottom: '40px', left: Chro40px}
+      margin: { top: '40px', right: '40px', bottom: '40px', left: '40px' },
     });
     await browser.close();
     console.log('PDF generated successfully');
@@ -511,13 +516,13 @@ Website: motionviewventures.in`,
     }
     if (error.message.includes('Failed to launch the browser process') || error.message.includes('Could not find Chrome')) {
       return res.status(500).json({ 
-        message: 'Puppeteer failed to launch. Chromium may not be installed or cache path is misconfigured.',
+        message: 'Puppeteer failed to launch. Chromium may not be installed correctly.',
         error: error.message,
-        suggestion: 'Ensure puppeteer is installed and check Render logs for Chromium path issues.'
+        suggestion: 'Check Render build logs for Chromium installation errors and ensure /usr/bin/chromium-browser exists.'
       });
     }
     if (error.code === 'ENOENT') {
-      return res.status(500).json({ message: 'File system error (e.g., uploads directory or file missing)', error: error.message });
+      return res.status(500).json({ message: 'File system error (e.g., uploads directory or Chromium binary missing)', error: error.message });
     }
     if (error.message.includes('EAUTH')) {
       return res.status(500).json({ message: 'Email authentication failed', error: error.message });
