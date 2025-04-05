@@ -597,6 +597,7 @@ app.get('/api/employeesdata', verifyToken, async (req, res) => {
 });
 
 // Save attendance
+// Save attendance
 app.post('/api/attendance', verifyToken, async (req, res) => {
   const { employee_id, date, present } = req.body;
   if (!employee_id || !date || present === undefined) {
@@ -604,6 +605,12 @@ app.post('/api/attendance', verifyToken, async (req, res) => {
   }
 
   try {
+    // Check if the date is a holiday
+    const [holidayCheck] = await pool.query('SELECT date FROM holidays WHERE date = ?', [date]);
+    if (holidayCheck.length > 0) {
+      return res.status(400).json({ message: 'Cannot mark attendance on a holiday' });
+    }
+
     await pool.query(
       `INSERT INTO attendance (employee_id, date, present)
        VALUES (?, ?, ?)
@@ -657,6 +664,7 @@ app.post('/api/holidays', verifyToken, async (req, res) => {
   const { date } = req.body;
   if (!date) return res.status(400).json({ message: 'Date is required' });
   try {
+    await pool.query('DELETE FROM attendance WHERE date = ?', [date]); // Remove existing attendance
     await pool.query('INSERT IGNORE INTO holidays (date) VALUES (?)', [date]);
     res.json({ message: `Marked ${date} as a holiday` });
   } catch (error) {
