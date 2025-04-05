@@ -335,7 +335,7 @@ app.get('/api/salary/history/:employeeId', verifyToken, async (req, res) => {
 // Send offer letter
 app.post('/api/employees/:id/send-offer-letter', verifyToken, async (req, res) => {
   const { id } = req.params;
-  const { doj, salary_amount } = req.body; // Changed SalaryAmnt to salary_amount for consistency
+  const { doj, salary_amount,Role } = req.body; // Changed SalaryAmnt to salary_amount for consistency
 
   if (!doj) return res.status(400).json({ message: 'Date of Joining is required' });
 
@@ -378,7 +378,7 @@ app.post('/api/employees/:id/send-offer-letter', verifyToken, async (req, res) =
           <div class="content">
             <p>Date: ${new Date().toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-')}</p>
             <p>Mr./Ms: ${employee.name}</p>
-            <p><strong>SUBJECT: OFFER LETTER FOR THE POST OF FULL STACK DEVELOPER</strong></p>
+            <p><strong>SUBJECT: OFFER LETTER FOR THE POST OF ${Role} </strong></p>
             <p>Dear ${employee.name.split(' ')[0]},</p>
             <p>This is regarding your application for the above position and the subsequent discussions thereof. We are pleased to inform you that you have been offered the position of <span class="highlight">Full Stack Developer</span> and will be posted to the Patna office. You shall join your duties on ${new Date(doj).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-')}.</p>
             <h2>1. Employment Type:</h2>
@@ -401,7 +401,7 @@ app.post('/api/employees/:id/send-offer-letter', verifyToken, async (req, res) =
             <h2>8. Concealment of Material Information</h2>
             <p>If any information/representation made by you in your application for internship and subsequent documents/testimonials submitted is/are found to be untrue or false or if facts come to our notice which have been either concealed or suppressed by you, the Management reserves the right to dispense with your services without giving any notice or compensation in lieu thereof and recover the amount(s)/salary paid to you.</p>
             <h2>9. Correspondence/Communications/Notice and change of address</h2>
-            <p>Your address as indicated in your application for internship shall be deemed to be correct for sending you any communication. Every communication addressed to you at the given address shall be deemed to have been duly served upon you.</p>
+            <p>Your address as indicated in your application for job shall be deemed to be correct for sending you any communication. Every communication addressed to you at the given address shall be deemed to have been duly served upon you.</p>
             <h2>10. Confidentiality Clause:</h2>
             <p>During and after your employment, you must maintain the confidentiality of all proprietary, sensitive, and business-critical information of Motionview Venture Pvt. Ltd. This includes but is not limited to financial data, client information, trade secrets, business strategies, and internal policies. Unauthorized disclosure, duplication, or misuse of such information, either directly or indirectly, will be treated as a serious offense and may result in legal action.</p>
             <h2>11. Non-Compete and Non-Solicitation:</h2>
