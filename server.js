@@ -33,8 +33,8 @@ app.use(cors());
 const upload = multer({ dest: 'uploads/' });
 
 // Debug environment variables
-console.log('EMAIL_USER:', process.env.EMAIL_USER);
-console.log('EMAIL_PASS:', process.env.EMAIL_PASS);
+// console.log('EMAIL_USER:', process.env.EMAIL_USER);
+// console.log('EMAIL_PASS:', process.env.EMAIL_PASS);
 
 const transporter = nodemailer.createTransport({
   service: 'gmail',
@@ -67,12 +67,12 @@ let pool;
 
 async function initializeDatabase() {
   try {
-    console.log('Attempting to connect to MySQL with config:', {
-      host: dbConfig.host,
-      user: dbConfig.user,
-      database: dbConfig.database,
-      port: dbConfig.port,
-    });
+    // console.log('Attempting to connect to MySQL with config:', {
+    //   host: dbConfig.host,
+    //   user: dbConfig.user,
+    //   database: dbConfig.database,
+    //   port: dbConfig.port,
+    // });
     pool = await mysql.createPool(dbConfig);
     const connection = await pool.getConnection();
     await connection.ping();
@@ -639,6 +639,35 @@ app.get('/api/attendance/history/:employeeId', verifyToken, async (req, res) => 
   }
 });
 
+app.get('/api/holidays', verifyToken, async (req, res) => {
+  try {
+    const [rows] = await pool.query('SELECT date FROM holidays');
+    res.json(rows);
+  } catch (error) {
+    console.error('Error fetching holidays:', error);
+    if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
+      return res.status(503).json({ message: 'No internet connection or database unreachable' });
+    }
+    res.status(500).json({ message: 'Failed to fetch holidays' });
+  }
+});
+
+// Mark holiday (New endpoint)
+app.post('/api/holidays', verifyToken, async (req, res) => {
+  const { date } = req.body;
+  if (!date) return res.status(400).json({ message: 'Date is required' });
+  try {
+    await pool.query('INSERT IGNORE INTO holidays (date) VALUES (?)', [date]);
+    res.json({ message: `Marked ${date} as a holiday` });
+  } catch (error) {
+    console.error('Error marking holiday:', error);
+    if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
+      return res.status(503).json({ message: 'No internet connection or database unreachable' });
+    }
+    res.status(500).json({ message: 'Failed to mark holiday' });
+  }
+});
+
 // Health check endpoint
 app.get('/api/health', async (req, res) => {
   if (!pool) return res.status(503).json({ status: 'error', message: 'Database not connected' });
@@ -667,6 +696,6 @@ async function startServer() {
 
   }
 }
-const adminPass= await bcrypt.hash("priya.admin@2025", 10);
-console.log(adminPass)
+// const adminPass= await bcrypt.hash("priya.admin@2025", 10);
+// console.log(adminPass);
 startServer();
