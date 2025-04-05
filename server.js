@@ -542,6 +542,49 @@ app.get('/api/employees', verifyToken, async (req, res) => {
   }
 });
 
+app.post('/api/contact', async (req, res) => {
+  const { name, email, subject, message } = req.body;
+
+  // Input validation
+  if (!name || !email || !subject || !message) {
+    return res.status(400).json({ message: 'All fields (name, email, subject, message) are required' });
+  }
+
+  // Basic email validation
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    return res.status(400).json({ message: 'Invalid email format' });
+  }
+
+  // Limit field lengths to prevent abuse
+  if (name.length > 255 || email.length > 255 || subject.length > 255 || message.length > 5000) {
+    return res.status(400).json({ message: 'Input exceeds maximum length' });
+  }
+
+  try {
+    const [result] = await pool.query(
+      `INSERT INTO contacts (name, email, subject, message, created_at)
+       VALUES (?, ?, ?, ?, NOW())`,
+      [name, email, subject, message]
+    );
+    console.log(`Contact form saved: ID ${result.insertId}, Name: ${name}, Email: ${email}`);
+    res.json({ message: 'Contact form submitted successfully', id: result.insertId });
+  } catch (error) {
+    console.error('Error saving contact form:', {
+      message: error.message,
+      stack: error.stack,
+      code: error.code,
+    });
+    if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
+      return res.status(503).json({ message: 'Database unreachable. Please try again later.' });
+    }
+    if (error.code === 'ER_DUP_ENTRY') {
+      return res.status(400).json({ message: 'Duplicate entry detected' });
+    }
+    res.status(500).json({ message: 'Failed to submit contact form', error: error.message });
+  }
+});
+
 // Fetch all employees (full info)
 app.get('/api/employees/full', verifyToken, async (req, res) => {
   try {
