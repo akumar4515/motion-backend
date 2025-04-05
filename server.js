@@ -335,20 +335,32 @@ app.get('/api/salary/history/:employeeId', verifyToken, async (req, res) => {
 // Send offer letter
 app.post('/api/employees/:id/send-offer-letter', verifyToken, async (req, res) => {
   const { id } = req.params;
-  const { doj, salary_amount,Role } = req.body; // Changed SalaryAmnt to salary_amount for consistency
+  const { doj, salary_amount, Role } = req.body;
 
   if (!doj) return res.status(400).json({ message: 'Date of Joining is required' });
 
   if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+    console.error('Missing email configuration: EMAIL_USER or EMAIL_PASS not set');
     return res.status(500).json({ message: 'Email configuration is missing' });
   }
 
   try {
+    console.log(`Processing offer letter for employee ID: ${id}, doj: ${doj}, salary_amount: ${salary_amount}, Role: ${Role}`);
+
+    // Ensure uploads directory exists
+    const uploadsDir = path.join(__dirname, 'uploads');
+    if (!fs.existsSync(uploadsDir)) {
+      console.log(`Creating uploads directory at: ${uploadsDir}`);
+      fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+
+    console.log(`Fetching employee with ID: ${id}`);
     const [employees] = await pool.query('SELECT * FROM employees WHERE id = ?', [id]);
     if (employees.length === 0) return res.status(404).json({ message: 'Employee not found' });
     const employee = employees[0];
-    const salaryDisplay = salary_amount ? `₹${salary_amount}` : (employee.salary_amount ? `₹${employee.salary_amount}` : '₹16,000 (default)');
+    console.log(`Employee found: ${employee.name}, ${employee.email}`);
 
+    const salaryDisplay = salary_amount ? `₹${salary_amount}` : (employee.salary_amount ? `₹${employee.salary_amount}` : '₹16,000 (default)');
     const htmlContent = `
       <html>
         <head>
@@ -370,7 +382,7 @@ app.post('/api/employees/:id/send-offer-letter', verifyToken, async (req, res) =
         </head>
         <body>
           <div class="header">
-            <img src="${logoBase64}" alt="Motion View Ventures Logo" />
+            <img src="data:image/jpeg;base64,${logoBase64}" alt="Motion View Ventures Logo" />
             <h1>Motion View Ventures Pvt. Ltd.</h1>
             <p>Address: Near Medi Mercy Emergency Hospital, B.H Colony, Vijay Nagar, Kankarbagh, Patna, Bihar - 800026</p>
             <p>Email: contact@motionviewventure.in | Phone No.: +91 7079367125 | Website: motionviewventures.in</p>
@@ -378,9 +390,9 @@ app.post('/api/employees/:id/send-offer-letter', verifyToken, async (req, res) =
           <div class="content">
             <p>Date: ${new Date().toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-')}</p>
             <p>Mr./Ms: ${employee.name}</p>
-            <p><strong>SUBJECT: OFFER LETTER FOR THE POST OF ${Role} </strong></p>
+            <p><strong>SUBJECT: OFFER LETTER FOR THE POST OF ${Role || 'Full Stack Developer'}</strong></p>
             <p>Dear ${employee.name.split(' ')[0]},</p>
-            <p>This is regarding your application for the above position and the subsequent discussions thereof. We are pleased to inform you that you have been offered the position of <span class="highlight">Full Stack Developer</span> and will be posted to the Patna office. You shall join your duties on ${new Date(doj).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-')}.</p>
+            <p>This is regarding your application for the above position and the subsequent discussions thereof. We are pleased to inform you that you have been offered the position of <span class="highlight">${Role || 'Full Stack Developer'}</span> and will be posted to the Patna office. You shall join your duties on ${new Date(doj).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-')}.</p>
             <h2>1. Employment Type:</h2>
             <p>You will be employed on a Full-time basis at Motionview Venture Pvt. Ltd. This is a Fixed-term position, subject to the terms and conditions outlined in this letter.</p>
             <h2>2. Working Hours:</h2>
@@ -414,7 +426,7 @@ app.post('/api/employees/:id/send-offer-letter', verifyToken, async (req, res) =
             <p>We at Motionview Venture Pvt. Ltd. are excited to have you as part of our team and are confident that it will be a mutually rewarding and fulfilling journey for you. We look forward to a long and a fruitful association with you in the transformational growth journey at Motionview Venture Pvt. Ltd.</p>
             <p>Cordially Yours,<br>For Motion View Ventures Pvt. Ltd.</p>
             <div class="signature">
-              <img src="${signatureBase64}" alt="Authorized Signature" />
+              <img src="data:image/png;base64,${signatureBase64}" alt="Authorized Signature" />
             </div>
             <p>Agreed and Accepted</p>
             <div class="signature">
@@ -429,19 +441,25 @@ app.post('/api/employees/:id/send-offer-letter', verifyToken, async (req, res) =
       </html>
     `;
 
+    console.log('Launching Puppeteer...');
     const browser = await puppeteer.launch({
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox'], // Required for Render
+      headless: 'new',
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
     });
+    console.log('Puppeteer launched successfully');
+
     const page = await browser.newPage();
     await page.setContent(htmlContent);
     const pdfPath = path.join(__dirname, 'uploads', `offer_letter_${id}.pdf`);
+    console.log(`Generating PDF at: ${pdfPath}`);
     await page.pdf({
       path: pdfPath,
       format: 'A4',
-      margin: { top: '40px', right: '40px', bottom: '40px', left: '40px' },
+      margin: { top: '40px', right: '40px', bottom: '40px', left: Chro40px}
     });
     await browser.close();
+    console.log('PDF generated successfully');
 
     const mailOptions = {
       from: process.env.EMAIL_USER,
@@ -471,15 +489,38 @@ Website: motionviewventures.in`,
       attachments: [{ filename: 'offer_letter.pdf', path: pdfPath }],
     };
 
+    console.log(`Sending email to: ${employee.email}`);
     await transporter.sendMail(mailOptions);
+    console.log('Email sent successfully');
+
+    console.log(`Updating employee with ID: ${id}, doj: ${doj}, salary_amount: ${salary_amount || employee.salary_amount}`);
     await pool.query('UPDATE employees SET doj = ?, salary_amount = ? WHERE id = ?', [doj, salary_amount || employee.salary_amount, id]);
+
+    console.log(`Deleting PDF file: ${pdfPath}`);
     fs.unlinkSync(pdfPath);
 
     res.json({ message: 'Offer letter sent successfully' });
   } catch (error) {
-    console.error('Error sending offer letter:', error);
+    console.error('Error sending offer letter:', {
+      message: error.message,
+      stack: error.stack,
+      code: error.code,
+    });
     if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
       return res.status(503).json({ message: 'No internet connection or database unreachable' });
+    }
+    if (error.message.includes('Failed to launch the browser process') || error.message.includes('Could not find Chrome')) {
+      return res.status(500).json({ 
+        message: 'Puppeteer failed to launch. Chromium may not be installed or cache path is misconfigured.',
+        error: error.message,
+        suggestion: 'Ensure puppeteer is installed and check Render logs for Chromium path issues.'
+      });
+    }
+    if (error.code === 'ENOENT') {
+      return res.status(500).json({ message: 'File system error (e.g., uploads directory or file missing)', error: error.message });
+    }
+    if (error.message.includes('EAUTH')) {
+      return res.status(500).json({ message: 'Email authentication failed', error: error.message });
     }
     res.status(500).json({ message: 'Failed to send offer letter', error: error.message });
   }
