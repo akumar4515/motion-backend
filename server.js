@@ -429,7 +429,10 @@ app.post('/api/employees/:id/send-offer-letter', verifyToken, async (req, res) =
       </html>
     `;
 
-    const browser = await puppeteer.launch({ headless: true });
+    const browser = await puppeteer.launch({
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox'], // Required for Render
+    });
     const page = await browser.newPage();
     await page.setContent(htmlContent);
     const pdfPath = path.join(__dirname, 'uploads', `offer_letter_${id}.pdf`);
