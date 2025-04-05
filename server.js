@@ -381,7 +381,8 @@ app.post('/api/employees/:id/send-offer-letter', verifyToken, async (req, res) =
             <p>Your standard working hours will be from 10:00 AM to 6:00 PM, 6 days a week. You may be required to work additional hours based on business needs. Any Change in the Schedule will be informed you in writing, prior to its effective Date.</p>
             <h2>3. Compensation:</h2>
             <p>You will receive a gross monthly salary of ${salaryDisplay}, payable on a monthly basis.</p>
-            <p>The offer letter is valid, subject to the authenticity and correctness of information, preliminary documents (if any) provided by you about your education, experience etc. The Offer (including the appointment) can be withdrawn/terminated at any point in time (without any legal liability on the Company), if the information provided by you is found to be untrue/incorrect.</p>
+            <p>The offer letter
+ is valid, subject to the authenticity and correctness of information, preliminary documents (if any) provided by you about your education, experience etc. The Offer (including the appointment) can be withdrawn/terminated at any point in time (without any legal liability on the Company), if the information provided by you is found to be untrue/incorrect.</p>
             <p>By accepting this offer, you agree, acknowledge, and authorize the Company to carry out necessary verifications, background checks on you from (which may be carried out in-house by the HR team or by a third party) your institution, college, previous employer/s, etc. In case of any negative feedback during the verification process, the Company reserves its right to withdraw/terminate this offer (including your appointment) without any legal liability on the Company. In any of the above event(s), you agree to pay back to the Company the amount(s) paid to you, without any objection.</p>
             <h2>4. Leave(s) & Holiday(s)</h2>
             <p>You shall be entitled to leave and holidays as per the HR policy of the Company (in force from time to time), which may be revised, modified or altered by the Management at its sole discretion.</p>
@@ -427,6 +428,7 @@ app.post('/api/employees/:id/send-offer-letter', verifyToken, async (req, res) =
       headless: 'new',
       args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu', '--single-process', '--no-zygote'],
       pipe: true,
+      dumpio: true, // Log browser output
     });
 
     const browser = await puppeteer.launch({
@@ -435,11 +437,12 @@ app.post('/api/employees/:id/send-offer-letter', verifyToken, async (req, res) =
         '--no-sandbox',
         '--disable-setuid-sandbox',
         '--disable-dev-shm-usage',
-        '--disable-gpu',       // Reduce memory usage
-        '--single-process',    // Run in single process to save memory
-        '--no-zygote',         // Avoid extra processes
+        '--disable-gpu',
+        '--single-process',
+        '--no-zygote',
       ],
-      pipe: true,              // Use pipe instead of WebSocket
+      pipe: true,
+      dumpio: true, // Log browser errors to console
     });
     console.log('Puppeteer launched successfully');
 
@@ -503,11 +506,12 @@ Website: motionviewventures.in`,
     if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
       return res.status(503).json({ message: 'No internet connection or database unreachable' });
     }
-    if (error.message.includes('Failed to launch the browser process') || error.message.includes('Could not find Chrome')) {
+    if (error.message.includes('Could not find Chrome') || error.message.includes('Failed to launch the browser process')) {
+      console.log('Puppeteer cache directory contents:', fs.existsSync('/opt/render/.cache/puppeteer') ? fs.readdirSync('/opt/render/.cache/puppeteer') : 'Not found');
       return res.status(500).json({ 
         message: 'Puppeteer failed to launch Chromium.',
         error: error.message,
-        suggestion: 'Check Render free tier memory limits (512MB) or upgrade to Starter plan (1GB). Ensure puppeteer installed correctly.'
+        suggestion: 'Ensure `npx puppeteer browsers install chrome` ran during build. Check Render build logs and memory limits (512MB free tier).'
       });
     }
     if (error.code === 'ENOENT') {
