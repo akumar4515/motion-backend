@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "start": "node server.js",
-    "postinstall": "npm rebuild bcrypt --build-from-source && npx puppeteer browsers install chrome"
+    "postinstall": "npm rebuild bcrypt --build-from-source",
+    "build": "npx puppeteer browsers install chrome --path /opt/render/.cache/puppeteer && ls -la /opt/render/.cache/puppeteer"
   },
   "keywords": [],
   "author": "",
