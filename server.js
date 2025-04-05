@@ -449,10 +449,13 @@ app.post('/api/employees/:id/send-offer-letter', verifyToken, async (req, res) =
 
     const browser = await puppeteer.launch({
       headless: 'new',
-      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
-      executablePath: '/usr/bin/chromium-browser', // Explicitly use system Chromium
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage'
+      ]
     });
-    console.log('Puppeteer launched successfully');
+    
 
     const page = await browser.newPage();
     await page.setContent(htmlContent);

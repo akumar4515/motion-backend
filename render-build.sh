@@ -17,20 +17,24 @@ fi#!/bin/bash
 echo "Installing Node.js dependencies..."
 npm ci
 
-# Update package list and install Chromium
-echo "Updating package list..."
-apt-get update
-echo "Installing chromium-browser..."
-apt-get install -y chromium-browser
+#!/bin/bash
 
-# Find and log the Chromium binary location
-echo "Locating Chromium binary..."
-CHROMIUM_PATH=$(which chromium-browser || which chromium || echo "not found")
+set -e
+
+echo "🛠️ Updating package list..."
+apt-get update -y
+
+echo "🌐 Installing Chromium..."
+apt-get install -y chromium-browser || apt-get install -y chromium
+
+echo "🔍 Locating Chromium binary..."
+CHROMIUM_PATH=$(command -v chromium-browser || command -v chromium || echo "not found")
+
 if [ "$CHROMIUM_PATH" != "not found" ]; then
-  echo "Chromium found at: $CHROMIUM_PATH"
+  echo "✅ Chromium found at: $CHROMIUM_PATH"
 else
-  echo "Chromium installation failed or binary not found"
-  echo "Listing available chromium packages..."
+  echo "❌ Chromium installation failed or binary not found"
+  echo "📦 Listing available chromium packages..."
   apt-cache search chromium
   exit 1
 fi
