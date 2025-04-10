@@ -542,48 +542,6 @@ app.get('/api/employees', verifyToken, async (req, res) => {
   }
 });
 
-app.post('/api/contact', async (req, res) => {
-  const { name, email, subject, message } = req.body;
-
-  // Input validation
-  if (!name || !email || !subject || !message) {
-    return res.status(400).json({ message: 'All fields (name, email, subject, message) are required' });
-  }
-
-  // Basic email validation
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(email)) {
-    return res.status(400).json({ message: 'Invalid email format' });
-  }
-
-  // Limit field lengths to prevent abuse
-  if (name.length > 255 || email.length > 255 || subject.length > 255 || message.length > 5000) {
-    return res.status(400).json({ message: 'Input exceeds maximum length' });
-  }
-
-  try {
-    const [result] = await pool.query(
-      `INSERT INTO contacts (name, email, subject, message, created_at)
-       VALUES (?, ?, ?, ?, NOW())`,
-      [name, email, subject, message]
-    );
-    console.log(`Contact form saved: ID ${result.insertId}, Name: ${name}, Email: ${email}`);
-    res.json({ message: 'Contact form submitted successfully', id: result.insertId });
-  } catch (error) {
-    console.error('Error saving contact form:', {
-      message: error.message,
-      stack: error.stack,
-      code: error.code,
-    });
-    if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
-      return res.status(503).json({ message: 'Database unreachable. Please try again later.' });
-    }
-    if (error.code === 'ER_DUP_ENTRY') {
-      return res.status(400).json({ message: 'Duplicate entry detected' });
-    }
-    res.status(500).json({ message: 'Failed to submit contact form', error: error.message });
-  }
-});
 
 // Fetch all employees (full info)
 app.get('/api/employees/full', verifyToken, async (req, res) => {
@@ -757,6 +715,43 @@ app.post('/api/holidays', verifyToken, async (req, res) => {
     }
     res.status(500).json({ message: 'Failed to mark holiday' });
   }
+});
+
+
+app.post('/api/servicerequest', (req, res) => {
+  const { name, contact, email, service, message } = req.body;
+  const query = 'INSERT INTO service_requests (name, contact, email, service, message) VALUES (?, ?, ?, ?, ?)';
+  db.query(query, [name, contact, email, service, message], (err, result) => {
+    if (err) {
+      console.error('Error inserting service request:', err);
+      return res.status(500).json({ message: 'Internal server error' });
+    }
+    res.status(200).json({ message: 'Service request submitted successfully' });
+  });
+});
+
+app.post('/api/contactdetail', (req, res) => {
+  const { name, email, subject, message } = req.body;
+  const query = 'INSERT INTO contact_details (name, email, subject, message) VALUES (?, ?, ?, ?)';
+  db.query(query, [name, email, subject, message], (err, result) => {
+    if (err) {
+      console.error('Error inserting contact details:', err);
+      return res.status(500).json({ message: 'Internal server error' });
+    }
+    res.status(200).json({ message: 'Contact details submitted successfully' });
+  });
+});
+
+app.post('/api/contact', (req, res) => {
+  const { name, email, subject, message } = req.body;
+  const query = 'INSERT INTO contact_details (name, email, subject, message) VALUES (?, ?, ?, ?)';
+  db.query(query, [name, email, subject, message], (err, result) => {
+    if (err) {
+      console.error('Error inserting contact:', err);
+      return res.status(500).json({ message: 'Internal server error' });
+    }
+    res.status(200).json({ message: 'Contact submitted successfully' });
+  });
 });
 
 // Health check endpoint
