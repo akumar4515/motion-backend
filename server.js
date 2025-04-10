@@ -717,43 +717,46 @@ app.post('/api/holidays', verifyToken, async (req, res) => {
   }
 });
 
-
-app.post('/api/servicerequest', (req, res) => {
+app.post('/api/servicerequest', async (req, res) => {
   const { name, contact, email, service, message } = req.body;
   const query = 'INSERT INTO service_requests (name, contact, email, service, message) VALUES (?, ?, ?, ?, ?)';
-  db.query(query, [name, contact, email, service, message], (err, result) => {
-    if (err) {
-      console.error('Error inserting service request:', err);
-      return res.status(500).json({ message: 'Internal server error' });
-    }
-    res.status(200).json({ message: 'Service request submitted successfully' });
-  });
+  
+  try {
+    const [result] = await pool.query(query, [name, contact, email, service, message]);
+    res.status(200).json({ message: 'Service request submitted successfully', id: result.insertId });
+  } catch (error) {
+    console.error('Error inserting service request:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
 });
 
-app.post('/api/contactdetail', (req, res) => {
+// Contact Details Endpoint
+app.post('/api/contactdetail', async (req, res) => {
   const { name, email, subject, message } = req.body;
   const query = 'INSERT INTO contact_details (name, email, subject, message) VALUES (?, ?, ?, ?)';
-  db.query(query, [name, email, subject, message], (err, result) => {
-    if (err) {
-      console.error('Error inserting contact details:', err);
-      return res.status(500).json({ message: 'Internal server error' });
-    }
-    res.status(200).json({ message: 'Contact details submitted successfully' });
-  });
+  
+  try {
+    const [result] = await pool.query(query, [name, email, subject, message]);
+    res.status(200).json({ message: 'Contact details submitted successfully', id: result.insertId });
+  } catch (error) {
+    console.error('Error inserting contact details:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
 });
 
-app.post('/api/contact', (req, res) => {
+// Contact Endpoint
+app.post('/api/contact', async (req, res) => {
   const { name, email, subject, message } = req.body;
-  const query = 'INSERT INTO contact_details (name, email, subject, message) VALUES (?, ?, ?, ?)';
-  db.query(query, [name, email, subject, message], (err, result) => {
-    if (err) {
-      console.error('Error inserting contact:', err);
-      return res.status(500).json({ message: 'Internal server error' });
-    }
-    res.status(200).json({ message: 'Contact submitted successfully' });
-  });
+  const query = 'INSERT INTO contacts (name, email, subject, message) VALUES (?, ?, ?, ?)';
+  
+  try {
+    const [result] = await pool.query(query, [name, email, subject, message]);
+    res.status(200).json({ message: 'Contact submitted successfully', id: result.insertId });
+  } catch (error) {
+    console.error('Error inserting contact:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
 });
-
 // Health check endpoint
 app.get('/api/health', async (req, res) => {
   if (!pool) return res.status(503).json({ status: 'error', message: 'Database not connected' });
